@@ -1,87 +1,117 @@
-document.addEventListener("DOMContentLoaded", () => {
+const taskInput = document.getElementById("taskInput");
+const addTaskBtn = document.getElementById("addTaskBtn");
+const taskList = document.getElementById("taskList");
+const taskCount = document.getElementById("taskCount");
+const emptyMessage = document.getElementById("emptyMessage");
+const clearCompleted = document.getElementById("clearCompleted");
 
-    // Remove portfolio loading screen
-    setTimeout(() => {
-        const loader = document.querySelector(".loader");
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
 
-        if (loader) {
-            loader.style.opacity = "0";
-            loader.style.visibility = "hidden";
-            loader.style.pointerEvents = "none";
+function saveTasks() {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
+
+function renderTasks() {
+    taskList.innerHTML = "";
+
+    tasks.forEach((task) => {
+
+        const li = document.createElement("li");
+        li.className = "task";
+
+        if (task.completed) {
+            li.classList.add("completed");
         }
-    }, 800);
 
-    // Smooth scrolling
-    document.querySelectorAll('a[href^="#"]').forEach(link => {
-        link.addEventListener("click", function (e) {
-            const target = document.querySelector(this.getAttribute("href"));
+        li.innerHTML = `
+            <input
+                type="checkbox"
+                class="task-checkbox"
+                ${task.completed ? "checked" : ""}
+            >
 
-            if (target) {
-                e.preventDefault();
-                target.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start"
-                });
+            <span class="task-text">${task.text}</span>
+
+            <button class="edit-btn">Edit</button>
+            <button class="delete-btn">Delete</button>
+        `;
+
+        const checkbox = li.querySelector(".task-checkbox");
+        const editBtn = li.querySelector(".edit-btn");
+        const deleteBtn = li.querySelector(".delete-btn");
+
+        checkbox.addEventListener("change", () => {
+            task.completed = checkbox.checked;
+            saveTasks();
+            renderTasks();
+        });
+
+        editBtn.addEventListener("click", () => {
+            const newText = prompt("Edit your task:", task.text);
+
+            if (newText !== null && newText.trim() !== "") {
+                task.text = newText.trim();
+                saveTasks();
+                renderTasks();
             }
         });
-    });
 
-    // Reveal sections while scrolling
-    const sections = document.querySelectorAll("section");
-
-    const observer = new IntersectionObserver(
-        entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add("visible");
-                }
-            });
-        },
-        { threshold: 0.12 }
-    );
-
-    sections.forEach(section => observer.observe(section));
-});
-
-// THEME TOGGLE
-const themeToggle = document.getElementById("theme-toggle");
-
-if (themeToggle) {
-    themeToggle.addEventListener("click", function () {
-        document.body.classList.toggle("light-theme");
-
-        if (document.body.classList.contains("light-theme")) {
-            themeToggle.innerHTML = "🌙";
-        } else {
-            themeToggle.innerHTML = "☀️";
-        }
-    });
-}
-
-// MOBILE MENU
-const menuToggle = document.getElementById("menu-toggle");
-const mobileNav = document.querySelector(".navbar nav");
-
-if (menuToggle && mobileNav) {
-
-    menuToggle.addEventListener("click", function () {
-
-        mobileNav.classList.toggle("mobile-open");
-
-        if (mobileNav.classList.contains("mobile-open")) {
-            menuToggle.textContent = "✕";
-        } else {
-            menuToggle.textContent = "☰";
-        }
-
-    });
-
-    mobileNav.querySelectorAll("a").forEach(function(link) {
-
-        link.addEventListener("click", function() {
-            mobileNav.classList.remove("mobile-open");
-            menuToggle.textContent = "☰";
+        deleteBtn.addEventListener("click", () => {
+            tasks = tasks.filter((t) => t.id !== task.id);
+            saveTasks();
+            renderTasks();
         });
 
+        taskList.appendChild(li);
     });
+
+    const total = tasks.length;
+
+    taskCount.textContent =
+        `${total} ${total === 1 ? "task" : "tasks"}`;
+
+    emptyMessage.style.display =
+        total === 0 ? "block" : "none";
 }
+
+function addTask() {
+
+    const text = taskInput.value.trim();
+
+    if (text === "") {
+        alert("Please enter a task.");
+        return;
+    }
+
+    const newTask = {
+        id: Date.now(),
+        text: text,
+        completed: false
+    };
+
+    tasks.push(newTask);
+
+    saveTasks();
+
+    taskInput.value = "";
+
+    renderTasks();
+}
+
+addTaskBtn.addEventListener("click", addTask);
+
+taskInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        addTask();
+    }
+});
+
+clearCompleted.addEventListener("click", () => {
+    tasks = tasks.filter((task) => !task.completed);
+
+    saveTasks();
+
+    renderTasks();
+});
+
+renderTasks();
